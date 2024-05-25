@@ -1,7 +1,6 @@
 """LOG related utility module"""
 import logging
 import time
-import warnings
 from functools import wraps
 from typing import Optional, Union, Tuple
 
@@ -62,10 +61,6 @@ class LoggerMixin:
     """
     _log: Optional[logging.Logger] = None
 
-    def __init__(self, name: str = None):
-        if name:
-            warnings.warn("LoggerMixin name argument is deprecated.")
-
     @property
     def log(self) -> logging.Logger:
         """
@@ -74,13 +69,6 @@ class LoggerMixin:
         if not self._log:
             self._log = self._create_logger()
         return self._log
-
-    @log.setter
-    def log(self, log: logging.Logger) -> None:
-        """
-        Set private _log attribute
-        """
-        self._log = log
 
     def _create_logger(self) -> logging.Logger:
         """

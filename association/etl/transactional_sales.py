@@ -52,7 +52,8 @@ def etl(run_date: str) -> None:
         ).collect()[0]
     )
     partition_cols = ["date"]
-    filter_expr = f"date>={min_date} AND date<={max_date}"
+    filter_expr = f"(date>='{min_date}' AND date<='{max_date}')"
+
     delta_io.write_partitioned(
         df=transactional_sales_df,
         path=TRANSACTIONAL_SALES_PATH,

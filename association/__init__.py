@@ -5,26 +5,33 @@ import os.path
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] {%(name)s:%(filename)s:%(lineno)s}"
+           " %(levelname)s - %(message)s",
+)
+logger = logging.getLogger('py4j')
+logger.setLevel(logging.WARNING)
+LOG = logging.getLogger("association")
+
 FILE_SCHEMA = "dbfs:/mnt/"
-logging.info(f"File schema is {FILE_SCHEMA}.")
+LOG.info(f"File schema is {FILE_SCHEMA}.")
 BUCKET_NAME = "datastore/association/"
-logging.info(f"Bucket name is {BUCKET_NAME}.")
+LOG.info(f"Bucket name is {BUCKET_NAME}.")
 try:
     from pyspark.dbutils import DBUtils  # pylint: disable=E0611, E0401, C0412
 except (ImportError, ModuleNotFoundError) as e:
-    logging.error(
+    LOG.error(
         f"Could not import PySpark dbutils. Do not use ETL Modules: \n {e}"
     )
     FILE_SCHEMA = "./"
-    logging.info(f"Updated file schema is {FILE_SCHEMA}.")
+    LOG.info(f"Updated file schema is {FILE_SCHEMA}.")
 
     class DBUtils:  # pylint: disable= R0903
         """Dummy class to provide access to DBUtils class."""
         def __init__(self, spark_session: SparkSession):
             pass
 
-logger = logging.getLogger('py4j')
-logger.setLevel(logging.WARN)
 
 builder = (
     SparkSession.builder
