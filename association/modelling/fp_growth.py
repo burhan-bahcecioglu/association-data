@@ -8,7 +8,8 @@ from pyspark.sql import functions as F
 
 from association.etl import TRANSACTIONAL_SALES_PATH
 from association.modelling import (
-    LOOK_BACK_PERIOD, RULES_PATH, ITEM_SETS_PATH, MODEL_PATH
+    LOOK_BACK_PERIOD, RULES_PATH, ITEM_SETS_PATH,
+    MODEL_DATA_PATH, PRODUCTS_TO_FILTER_OUT_PATH
 )
 from association.utils import (
     log_time, date_add_str, hard_cache,
@@ -60,6 +61,7 @@ def model(run_date: str, min_support: float, min_confidence: float) -> None:
     LOG.info(f"Running fp_growth for {run_date}.")
 
     sales_df = delta_io.read(path=TRANSACTIONAL_SALES_PATH)
+    products_to_filter_out_df = delta_io.read(path=PRODUCTS_TO_FILTER_OUT_PATH)
 
     stats = sales_df.agg(
         F.countDistinct("date").alias("date_count"),
@@ -78,13 +80,11 @@ def model(run_date: str, min_support: float, min_confidence: float) -> None:
     LOG.info(f"Total date count: {date_count:,}")
     LOG.info(f"Total basket count: {basket_count:,}")
     LOG.info(f"Total transaction count: {transaction_count:,}")
-    LOG.info(f"Total transaction per basket: {transaction_per_basket:,}")
+    LOG.info(f"Total transaction per basket: {transaction_per_basket:.2f}")
 
     # filter out some rows
-    sales_df = sales_df.where(
-        F.col("product_id") != F.lit(890999)
-    ).where(
-        F.col("product_id") != F.lit(888376)
+    sales_df = sales_df.join(
+        products_to_filter_out_df, on="product_id", how="left_anti"
     )
 
     sales_df = sales_df.where(
@@ -103,38 +103,42 @@ def model(run_date: str, min_support: float, min_confidence: float) -> None:
     stores = df.select("store_id").distinct(
     ).rdd.flatMap(lambda x: x).collect()
 
-    LOG.info(f"# of stores to model is {len(stores):,}.")
+    len_stores = len(stores)
+    LOG.info(f"# of stores to model is {len_stores:,}.")
 
     fp_modeler = FPGrowth(
         minSupport=min_support, minConfidence=min_confidence,
         itemsCol='basket', predictionCol='prediction'
     )
 
+    counter = 0
     for store in stores:
         replace_where = f"store_id=={store}"
         df_to_model = df.where(replace_where)
-        LOG.info(f"Running fp_growth for {store}.")
+        LOG.info(
+            f"Running fp_growth for {store}. Status: {counter}/{len_stores}"
+        )
         fp_model = fp_modeler.fit(df_to_model)
 
-        delta_io.write(
+        delta_io.write_partitioned(
             df=fp_model.associationRules.withColumn("store_id", F.lit(store)),
             path=RULES_PATH,
             partition_columns=["store_id"],
             mode="overwrite",
             replace_where=replace_where,
-            dynamic_partition_overwrite=True
         )
 
-        delta_io.write(
+        delta_io.write_partitioned(
             df=fp_model.freqItemsets.withColumn("store_id", F.lit(store)),
             path=ITEM_SETS_PATH,
             partition_columns=["store_id"],
             mode="overwrite",
             replace_where=replace_where,
-            dynamic_partition_overwrite=True
         )
 
-        fp_model.save(os.path.join(MODEL_PATH, replace_where))
+        fp_model.save(os.path.join(MODEL_DATA_PATH, replace_where))
+
+        counter += 1
 
 
 def main() -> None:

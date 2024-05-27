@@ -5,7 +5,8 @@ from association.etl import (
     PRODUCT_TRANSLATIONS_PATH, find_raw_path, translate_from_uk_to_en
 )
 from association.utils import (
-    log_time, read_csv, get_run_date_from_cli, LoggerMixin, delta_io
+    log_time, read_csv, get_run_date_from_cli,
+    LoggerMixin, delta_io, hard_cache
 )
 
 LOG = LoggerMixin().log
@@ -34,9 +35,11 @@ def etl(run_date: str) -> None:
 
     product_translation_df = product_translation_df.select("product_id")
 
-    delta_product_translation_df = product_translation_df.join(
-        product_df, on="product_id", how="left_anti"
+    delta_product_translation_df = product_df.join(
+        product_translation_df, on="product_id", how="left_anti"
     )
+
+    delta_product_translation_df = hard_cache(delta_product_translation_df)
 
     delta_product_translation_df = delta_product_translation_df.select(
         "product_id",

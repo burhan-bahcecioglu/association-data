@@ -1,7 +1,9 @@
 """MongoDB result delivery module."""
 from pyspark.sql import functions as F
 
-from association.etl import STORE_TRANSLATIONS_PATH, STORE_PATH, PRODUCT_PATH
+from association.etl import (
+    STORE_TRANSLATIONS_PATH, STORE_PATH, PRODUCT_TRANSLATIONS_PATH
+)
 from association.modelling import (
     RULES_PATH as MODELLING_RULES_PATH,
     ITEM_SETS_PATH as MODELLING_ITEM_SETS_PATH
@@ -30,12 +32,15 @@ def result_delivery(run_date: str) -> None:
     store_translations_df = delta_io.read(path=STORE_TRANSLATIONS_PATH).select(
         "store_id", "store_description_en", "segment_en"
     )
-    product_translations_df = delta_io.read(path=PRODUCT_PATH).select(
-        "product_id", "product_description_en"
-    )
+    product_translations_df = delta_io.read(
+        path=PRODUCT_TRANSLATIONS_PATH
+    ).select("product_id", "product_description_en")
 
-    rules_df = rules_df.join(store_df, on="store_id", how="inner")
-    rules_df = rules_df.join(store_translations_df, on="store_id", how="inner")
+    rules_df = rules_df.join(
+        store_df, on="store_id", how="inner"
+    ).join(
+        store_translations_df, on="store_id", how="inner"
+    )
 
     rules_df = rules_df.withColumn(
         "index", F.monotonically_increasing_id()
@@ -45,7 +50,7 @@ def result_delivery(run_date: str) -> None:
         "product_id", F.explode("consequent")
     ).join(
         product_translations_df, on="product_id", how="inner"
-    ).withColumnRenamed(
+    ).drop("consequent").withColumnRenamed(
         "product_description_en", "consequent"
     )
 
@@ -53,21 +58,25 @@ def result_delivery(run_date: str) -> None:
         "product_id", F.explode("antecedent")
     ).join(
         product_translations_df, on="product_id", how="inner"
-    ).withColumnRenamed(
+    ).drop("antecedent").withColumnRenamed(
         "product_description_en", "antecedent"
     )
 
     rules_df = rules_df.groupby(
         "index", "store_id", "store_description_en", "area", "segment_en"
     ).agg(
-        F.collect_list("antecedent").alias("antecedent"),
-        F.collect_list("consequent").alias("consequent"),
+        F.collect_list("antecedent").cast("string").alias("antecedent"),
+        F.collect_set("consequent").cast("string").alias("consequent"),
         F.avg("confidence").cast("double").alias("confidence"),
         F.avg("lift").cast("double").alias("lift"),
         F.avg("support").cast("double").alias("support")
     ).drop("index")
 
-    item_sets_df = item_sets_df.withColumn(
+    item_sets_df = item_sets_df.join(
+        store_df, on="store_id", how="inner"
+    ).join(
+        store_translations_df, on="store_id", how="inner"
+    ).withColumn(
         "index", F.monotonically_increasing_id()
     )
 
@@ -75,12 +84,12 @@ def result_delivery(run_date: str) -> None:
         "product_id", F.explode("items")
     ).join(
         product_translations_df, on="product_id", how="inner"
-    ).withColumnRenamed(
-        "product_description_en", "item_sets_df"
-    )
+    ).drop("items")
 
-    item_sets_df = item_sets_df.groupby("index").agg(
-        F.collect_list("items").alias("items"),
+    item_sets_df = item_sets_df.groupby(
+        "index", "store_id", "store_description_en", "area", "segment_en"
+    ).agg(
+        F.collect_list("product_description_en").cast("string").alias("items"),
         F.avg("freq").cast("int").alias("freq")
     ).drop("index")
 

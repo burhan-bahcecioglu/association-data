@@ -17,7 +17,6 @@ def create_timestamp() -> str:
 
 OUTPUT_PATH = os.path.join(ROOT_PATH, "output")
 RESULT_DELIVERY_PATH = os.path.join(OUTPUT_PATH, "result_delivery")
-DATABASE_URI = os.getenv("DATABASE_URI")
 DATABASE = "association_prod"
 
 timestamp = create_timestamp()

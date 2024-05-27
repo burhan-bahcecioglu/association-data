@@ -15,6 +15,9 @@ LOG = LoggerMixin().log
 
 def hard_cache(df: DataFrame, **kwargs) -> DataFrame:
     """writes & read df from object storage"""
+    LOG.info(
+        f"Caching data from with options {kwargs}."
+    )
     partition_by = kwargs.pop("partition_by", [])
     path = os.path.join(ROOT_PATH, "cache", str(uuid4()))
     LOG.info(f"Writing df to {path}.")

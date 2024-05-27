@@ -1,5 +1,5 @@
 """Transactional Sales ETL module."""
-from pyspark.errors import AnalysisException
+from pyspark.errors import AnalysisException, IllegalArgumentException
 from pyspark.sql import functions as F
 
 from association.etl import (
@@ -77,7 +77,7 @@ def main() -> None:
         try:
             etl(run_date)
             run_date = date_add_str(run_date, **{"days": 1})
-        except AnalysisException as e:
+        except (AnalysisException, IllegalArgumentException) as e:
             LOG.error(f"Stops execution due to error: \n {e}")
             break
 
