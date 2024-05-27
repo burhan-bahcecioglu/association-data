@@ -136,7 +136,9 @@ def model(run_date: str, min_support: float, min_confidence: float) -> None:
             replace_where=replace_where,
         )
 
-        fp_model.save(os.path.join(MODEL_DATA_PATH, replace_where))
+        fp_model.write().overwrite().save(
+            os.path.join(MODEL_DATA_PATH, replace_where)
+        )
 
         counter += 1
 
