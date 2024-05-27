@@ -94,8 +94,10 @@ def result_delivery(run_date: str) -> None:
         product_translations_df, on="product_id", how="inner"
     ).drop("items")
 
-    item_sets_df = item_sets_df.groupby("index", "store_id").agg(
-        F.collect_list("product_description_en").alias("items"),
+    item_sets_df = item_sets_df.groupby(
+        "index", "store_id", "store_description_en", "area", "segment_en"
+    ).agg(
+        F.collect_list("product_description_en").cast("string").alias("items"),
         F.avg("freq").cast("int").alias("freq")
     ).drop("index")
 
