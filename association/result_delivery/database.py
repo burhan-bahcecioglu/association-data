@@ -32,7 +32,7 @@ def result_delivery(run_date: str) -> None:
 
     store_df = delta_io.read(path=STORE_PATH).select("store_id", "area")
     store_translations_df = delta_io.read(path=STORE_TRANSLATIONS_PATH).select(
-        "store_id", "store_description_en", "segment_en"
+        "store_id", F.lit("store").alias("store_description_en"), "segment_en"
     )
     product_translations_df = delta_io.read(
         path=PRODUCT_TRANSLATIONS_PATH
