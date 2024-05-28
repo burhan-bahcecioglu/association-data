@@ -72,14 +72,7 @@ def main() -> None:
     """
     arguments = get_run_date_from_cli()
     run_date = arguments.run_date
-    run_date = date_add_str(run_date, **{"days": -10})
-    while True:
-        try:
-            etl(run_date)
-            run_date = date_add_str(run_date, **{"days": 1})
-        except (AnalysisException, IllegalArgumentException) as e:
-            LOG.error(f"Stops execution due to error: \n {e}")
-            break
+    etl(run_date)
 
 
 if __name__ == "__main__":
