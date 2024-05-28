@@ -58,7 +58,7 @@ builder = (
     )
 )
 
-if "spark" not in globals():
+if "sc" not in globals():
     spark = configure_spark_with_delta_pip(builder).getOrCreate()  # for local
     LOG.info("Configured spark for local.")
 else:
