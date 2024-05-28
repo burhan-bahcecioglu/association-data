@@ -22,8 +22,7 @@ STORE_TRANSLATIONS_PATH = os.path.join(ETL_PATH, "store_translations")
 PRODUCT_PATH = os.path.join(ETL_PATH, "products")
 PRODUCT_TRANSLATIONS_PATH = os.path.join(ETL_PATH, "product_translations")
 TRANSACTIONAL_SALES_PATH = os.path.join(ETL_PATH, "transactional_sales")
-# "https://association-translate.onrender.com/"
-LIBRE_TRANSLATE_API_URL = "https://translate.terraprint.co/"
+LIBRE_TRANSLATE_API_URL = "https://association-translate.onrender.com/"
 LIBRE_TRANSLATE_API_KEY = ""
 
 
